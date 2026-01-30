@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lecturer Scheduler</title>
+</head>
+<body>
+  <h2>Schedule Lecture / Exam</h2>
+
+  <input placeholder="Course" id="course"><br><br>
+  <input placeholder="Level" id="level"><br><br>
+  <input placeholder="Departments (comma separated)" id="departments"><br><br>
+  <input placeholder="Lecturer Name" id="lecturer"><br><br>
+  <input placeholder="Venue" id="venue"><br><br>
+  <input type="date" id="date"><br><br>
+  <input placeholder="Start hour (e.g. 9)" id="start"><br><br>
+  <input placeholder="End hour (e.g. 11)" id="end"><br><br>
+
+  <button onclick="schedule()">Schedule</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    function schedule() {
+      fetch("/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course: document.getElementById("course").value,
+          level: document.getElementById("level").value,
+          departments: document.getElementById("departments").value.split(","),
+          lecturer: document.getElementById("lecturer").value,
+          venue: document.getElementById("venue").value,
+          date: document.getElementById("date").value,
+          start: Number(document.getElementById("start").value),
+          end: Number(document.getElementById("end").value)
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("output").textContent =
+          JSON.stringify(data, null, 2);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Timetable</title>
+</head>
+<body>
+  <h2>View Timetable</h2>
+
+  <input placeholder="Department" id="dept">
+  <input placeholder="Level" id="level">
+  <button onclick="load()">View</button>
+
+  <pre id="result"></pre>
+
+  <script>
+    function load() {
+      const dept = document.getElementById("dept").value;
+      const level = document.getElementById("level").value;
+
+      fetch(`/schedule/${dept}/${level}`)
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("result").textContent =
+            JSON.stringify(data, null, 2);
+        });
+    }
+  </script>
+</body>
+</html>

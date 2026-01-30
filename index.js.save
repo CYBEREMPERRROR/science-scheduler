@@ -1,0 +1,58 @@
+const express = require("express");
+
+const app = express();
+app.use(express.json());
+app.get("/", (req, res) => {
+  res.send("Science Scheduler server is running");
+});
+
+app.listen(3000, () => const express = require("express");
+
+const app = express();
+app.use(express.json());   // <-- Step 4.2 (JSON parser)
+
+// ---------- ROUTES START HERE ----------
+
+// Health check route
+app.get("/", (req, res) => {
+  res.send("Science Scheduler server is running");
+});
+
+// Step 4.3 starts HERE 👇
+const venues = [];
+
+app.post("/venues", (req, res) => {
+  const { name, capacity } = req.body;
+
+  if (!name || !capacity) {
+    return res.status(400).json({
+      error: "Name and capacity are required"
+    });
+  }
+
+  venues.push({ name, capacity });
+
+  res.json({
+    message: "Venue added successfully",
+    venues
+  });
+});
+
+// ---------- ROUTES END HERE ----------
+
+// Server starts LAST
+app.listen(3000, () => {
+  console.log("Server started on port 3000");
+});
+  console.log("Server started on port 3000");
+});const express = require("express");
+
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("Science Scheduler server is running");
+});
+
+app.listen(3000, () => {
+  console.log("Server started on port 3000");
+});

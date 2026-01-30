@@ -1,0 +1,48 @@
+const express = require("express");
+
+const app = express();
+app.use(express.json());
+
+// Health check
+app.get("/", (req, res) => {
+  res.send("Science Scheduler server is running");
+});
+
+// In-memory venue store
+const venues = [];
+const schedules = [];
+function hasConflict(venue, date, start, end) {
+  return schedules.some(s =>
+    s.venue === venue &&
+    s.date === date &&
+    start < s.end &&
+    end > s.start
+  );
+}
+// Create venue
+app.post("/venues", (req, res) => {
+  const { name, capacity } = req.body;
+
+  if (!name || !capacity) {
+    return res.status(400).json({
+      error: "Name and capacity are required"
+    });
+  }
+
+  venues.push({ name, capacity });
+
+  res.json({
+    message: "Venue added successfully",
+    venues
+  });
+});
+
+// Get all venues
+app.get("/venues", (req, res) => {
+  res.json(venues);
+});
+
+// Start server (MUST be last)
+app.listen(3000, () => {
+  console.log("Server started on port 3000");
+});

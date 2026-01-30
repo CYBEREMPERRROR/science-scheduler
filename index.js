@@ -1,0 +1,98 @@
+const express = require("express");
+const path = require("path");          // ← ADD THIS
+
+const app = express();
+app.use(express.json());
+
+app.use(express.static(path.join(__dirname, "public")));  // ← AND THIS
+// ---------- DATA STORES ----------
+const venues = [];
+const schedules = [];
+
+// ---------- HELPER FUNCTIONS ----------
+function hasConflict(venue, date, start, end) {
+  return schedules.some(s =>
+    s.venue === venue &&
+    s.date === date &&
+    start < s.end &&
+    end > s.start
+  );
+}
+
+// ---------- ROUTES ----------
+
+// Health check
+app.get("/", (req, res) => {
+  res.send("Science Scheduler server is running");
+});
+
+// ----- VENUE ROUTES -----
+
+// Create venue
+app.post("/venues", (req, res) => {
+  const { name, capacity } = req.body;
+
+  if (!name || !capacity) {
+    return res.status(400).json({
+      error: "Name and capacity are required"
+    });
+  }
+
+  if (venues.find(v => v.name === name)) {
+    return res.status(409).json({ error: "Venue already exists" });
+  }
+
+  venues.push({ name, capacity });
+
+  res.json({
+    message: "Venue added successfully",
+    venues
+  });
+});
+
+// Get all venues
+app.get("/venues", (req, res) => {
+  res.json(venues);
+});
+
+// ----- SCHEDULE ROUTES -----
+
+// Create lecture/exam schedule
+app.post("/schedule", (req, res) => {
+  const { course, level, departments, date, start, end, venue, lecturer } = req.body;
+
+  if (!course || !level || !departments || !date || !start || !end || !venue || !lecturer) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  if (!venues.find(v => v.name === venue)) {
+    return res.status(404).json({ error: "Venue does not exist" });
+  }
+
+  if (hasConflict(venue, date, start, end)) {
+    return res.status(409).json({ error: "Venue already booked for this time" });
+  }
+
+  schedules.push({ course, level, departments, date, start, end, venue, lecturer });
+
+  res.json({ message: "Schedule created successfully", schedules });
+});
+
+// Get all schedules
+app.get("/schedule", (req, res) => {
+  res.json(schedules);
+});
+
+// Get schedules for a specific department and level (student view)
+app.get("/schedule/:department/:level", (req, res) => {
+  const { department, level } = req.params;
+  const filtered = schedules.filter(s =>
+    s.level === level && s.departments.includes(department)
+  );
+  res.json(filtered);
+});
+
+// ---------- START SERVER ----------
+app.listen(3000, () => {
+  console.log("Server started on port 3000");
+});
