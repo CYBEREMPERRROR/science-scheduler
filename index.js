@@ -1,21 +1,17 @@
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
+const { Pool } = require("pg");
 
-const venuesFile = path.join(__dirname, "venues.json");
-const scheduleFile = path.join(__dirname, "schedule.json");
+// Use your Render PostgreSQL connection string
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false } // required for Render
+});
 
-// Load venues/schedule from file
-let venues = JSON.parse(fs.readFileSync(venuesFile, "utf-8"));
-let schedule = JSON.parse(fs.readFileSync(scheduleFile, "utf-8"));
-
-// Helpers to save
-function saveVenues() {
-  fs.writeFileSync(venuesFile, JSON.stringify(venues, null, 2));
-}
-function saveSchedule() {
-  fs.writeFileSync(scheduleFile, JSON.stringify(schedule, null, 2));
-}
+// Test connection
+pool.query("SELECT NOW()", (err, res) => {
+  if (err) console.error("DB connection error", err);
+  else console.log("DB connected:", res.rows[0]);
+});
 const cors = require("cors");
 const path = require("path");          // ← ADD THIS
 
@@ -48,54 +44,51 @@ app.get("/", (req, res) => {
 // ----- VENUE ROUTES -----
 
 // Create venue
-app.post("/venues", (req, res) => {
+app.post("/venues", async (req, res) => {
   const { name, capacity } = req.body;
   if (!name || !capacity) return res.status(400).json({ error: "Name and capacity required" });
 
-  venues.push({ name, capacity });
-  saveVenues();
-  res.json({ message: "Venue added", venue: { name, capacity } });
-});
-
-// Get all venues
-app.get("/venues", (req, res) => {
-  res.json(venues);
+  try {
+    const result = await pool.query(
+      "INSERT INTO venues (name, capacity) VALUES ($1, $2) RETURNING *",
+      [name, capacity]
+    );
+    res.json({ message: "Venue added", venue: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
 // ----- SCHEDULE ROUTES -----
 
 // Create lecture/exam schedule
-app.post("/schedule", (req, res) => {
+app.post("/schedule", async (req, res) => {
   const { course, venue, date, start, end, department, level } = req.body;
   if (!course || !venue || !date || !start || !end || !department || !level) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
-  // Prevent double booking
-  const conflict = schedule.find(
-    s => s.venue === venue && s.date === date && ((start >= s.start && start < s.end) || (end > s.start && end <= s.end))
-  );
-  if (conflict) return res.status(400).json({ error: "Venue already booked at that time" });
+  try {
+    // Check for conflicts
+    const conflict = await pool.query(
+      `SELECT * FROM lectures WHERE venue = $1 AND date = $2 
+       AND (($3 >= start AND $3 < end) OR ($4 > start AND $4 <= end))`,
+      [venue, date, start, end]
+    );
+    if (conflict.rows.length > 0)
+      return res.status(400).json({ error: "Venue already booked at that time" });
 
-  const newLecture = { course, venue, date, start, end, department, level };
-  schedule.push(newLecture);
-  saveSchedule();
-
-  res.json({ message: "Lecture scheduled", lecture: newLecture });
-});
-
-// Get all schedules
-app.get("/schedule", (req, res) => {
-  res.json(schedules);
-});
-
-// Get schedules for a specific department and level (student view)
-app.get("/schedule/:department/:level", (req, res) => {
-  const { department, level } = req.params;
-  const filtered = schedules.filter(s =>
-    s.level === level && s.departments.includes(department)
-  );
-  res.json(filtered);
+    const result = await pool.query(
+      `INSERT INTO lectures (course, venue, date, start, end, department, level)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [course, venue, date, start, end, department, level]
+    );
+    res.json({ message: "Lecture scheduled", lecture: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "DB error" });
+  }
 });
 
 // ---------- START SERVER ----------
@@ -104,4 +97,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
