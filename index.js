@@ -1,4 +1,21 @@
 const express = require("express");
+const fs = require("fs");
+const path = require("path");
+
+const venuesFile = path.join(__dirname, "venues.json");
+const scheduleFile = path.join(__dirname, "schedule.json");
+
+// Load venues/schedule from file
+let venues = JSON.parse(fs.readFileSync(venuesFile, "utf-8"));
+let schedule = JSON.parse(fs.readFileSync(scheduleFile, "utf-8"));
+
+// Helpers to save
+function saveVenues() {
+  fs.writeFileSync(venuesFile, JSON.stringify(venues, null, 2));
+}
+function saveSchedule() {
+  fs.writeFileSync(scheduleFile, JSON.stringify(schedule, null, 2));
+}
 const cors = require("cors");
 const path = require("path");          // ← ADD THIS
 
@@ -33,23 +50,11 @@ app.get("/", (req, res) => {
 // Create venue
 app.post("/venues", (req, res) => {
   const { name, capacity } = req.body;
-
-  if (!name || !capacity) {
-    return res.status(400).json({
-      error: "Name and capacity are required"
-    });
-  }
-
-  if (venues.find(v => v.name === name)) {
-    return res.status(409).json({ error: "Venue already exists" });
-  }
+  if (!name || !capacity) return res.status(400).json({ error: "Name and capacity required" });
 
   venues.push({ name, capacity });
-
-  res.json({
-    message: "Venue added successfully",
-    venues
-  });
+  saveVenues();
+  res.json({ message: "Venue added", venue: { name, capacity } });
 });
 
 // Get all venues
@@ -61,23 +66,22 @@ app.get("/venues", (req, res) => {
 
 // Create lecture/exam schedule
 app.post("/schedule", (req, res) => {
-  const { course, level, departments, date, start, end, venue, lecturer } = req.body;
-
-  if (!course || !level || !departments || !date || !start || !end || !venue || !lecturer) {
+  const { course, venue, date, start, end, department, level } = req.body;
+  if (!course || !venue || !date || !start || !end || !department || !level) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
-  if (!venues.find(v => v.name === venue)) {
-    return res.status(404).json({ error: "Venue does not exist" });
-  }
+  // Prevent double booking
+  const conflict = schedule.find(
+    s => s.venue === venue && s.date === date && ((start >= s.start && start < s.end) || (end > s.start && end <= s.end))
+  );
+  if (conflict) return res.status(400).json({ error: "Venue already booked at that time" });
 
-  if (hasConflict(venue, date, start, end)) {
-    return res.status(409).json({ error: "Venue already booked for this time" });
-  }
+  const newLecture = { course, venue, date, start, end, department, level };
+  schedule.push(newLecture);
+  saveSchedule();
 
-  schedules.push({ course, level, departments, date, start, end, venue, lecturer });
-
-  res.json({ message: "Schedule created successfully", schedules });
+  res.json({ message: "Lecture scheduled", lecture: newLecture });
 });
 
 // Get all schedules
