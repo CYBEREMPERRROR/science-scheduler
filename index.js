@@ -2,6 +2,7 @@ const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
+const LECTURER_TOKEN = process.env.LECTURER_TOKEN || "dev-secret-123";
 
 // Connect to Render PostgreSQL
 const pool = new Pool({
@@ -18,6 +19,21 @@ pool.query("SELECT NOW()", (err, res) => {
 const app = express();
 app.use(express.json());
 app.use(cors());
+function lecturerAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ error: "Missing authorization header" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  if (token !== LECTURER_TOKEN) {
+    return res.status(403).json({ error: "Invalid lecturer token" });
+  }
+
+  next();
+}
 
 // Health check
 app.get("/", (req, res) => {
@@ -78,12 +94,12 @@ app.get("/lectures", async (req, res) => {
 });
 
 // Schedule a lecture
-app.post("/schedule", async (req, res) => {
+app.post("/api/lecturer/lectures", lecturerAuth, async (req, res) => {
   const { course, venue, date, start, end_time, department, level } = req.body;
   if (!course || !venue || !date || !start || !end_time || !department || !level) {
     return res.status(400).json({ error: "All fields are required" });
   }
-
+1
   try {
     // Check for conflicts
     const conflict = await pool.query(
