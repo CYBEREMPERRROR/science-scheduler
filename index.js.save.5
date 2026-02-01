@@ -5,7 +5,8 @@ const path = require("path");
 const LECTURER_TOKEN = process.env.LECTURER_TOKEN || "dev-secret-123";
 
 // Connect to Render PostgreSQL
-// Replace this with your full external URL from Render
+const { Pool } = require("pg");
+
 const DATABASE_URL = "postgresql://science_scheduler_db_user:ImI7yPrvlpLrgZxXfN5k1CJ3D9QXyrdG@dpg-d5ukql4hg0os73b03ro0-a.virginia-postgres.render.com/science_scheduler_db";
 
 const pool = new Pool({
