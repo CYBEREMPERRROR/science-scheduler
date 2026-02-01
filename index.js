@@ -1,32 +1,40 @@
+// 1️⃣ Imports
 const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
+
 const LECTURER_TOKEN = process.env.LECTURER_TOKEN || "dev-secret-123";
 
-// Connect to Render PostgreSQL
-// Replace this with your full external URL from Render
-const DATABASE_URL = "postgresql://science_scheduler_db_user:ImI7yPrvlpLrgZxXfN5k1CJ3D9QXyrdG@dpg-d5ukql4hg0os73b03ro0-a.virginia-postgres.render.com/science_scheduler_db";
+// 2️⃣ Initialize Express app  ✅ THIS WAS MISSING BEFORE
+const app = express();
+
+// 3️⃣ Middleware
+app.use(cors());
+app.use(express.json());
+
+// 4️⃣ Database connection (Render PostgreSQL)
+const DATABASE_URL =
+  "postgresql://science_scheduler_db_user:ImI7yPrvlpLrgZxXfN5k1CJ3D9QXyrdG@dpg-d5ukql4hg0os73b03ro0-a.virginia-postgres.render.com/science_scheduler_db";
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // required for Render Postgres
+  ssl: { rejectUnauthorized: false },
 });
 
-// Assuming you already have: const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-
+// 5️⃣ Routes (NOW app exists, so this is safe)
 app.get("/api/venues", async (req, res) => {
   try {
-    const result = await pool.query("SELECT name FROM venues ORDER BY name ASC");
-    const venues = result.rows.map(row => row.name); // convert to array of strings
+    const result = await pool.query(
+      "SELECT name FROM venues ORDER BY name ASC"
+    );
+    const venues = result.rows.map(row => row.name);
     res.json(venues);
   } catch (err) {
     console.error("Failed to fetch venues", err);
     res.status(500).json({ error: "Failed to fetch venues" });
   }
 });
-
-module.exports = pool; // if you need to use it in other files
 
 // Test connection
 pool.query("SELECT NOW()", (err, res) => {
