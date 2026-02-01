@@ -42,7 +42,6 @@ pool.query("SELECT NOW()", (err, res) => {
   else console.log("DB connected:", res.rows[0]);
 });
 
-const app = express();
 app.use(express.json());
 app.use(cors());
 function lecturerAuth(req, res, next) {
