@@ -13,6 +13,19 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false } // required for Render Postgres
 });
 
+// Assuming you already have: const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+
+app.get("/api/venues", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT name FROM venues ORDER BY name ASC");
+    const venues = result.rows.map(row => row.name); // convert to array of strings
+    res.json(venues);
+  } catch (err) {
+    console.error("Failed to fetch venues", err);
+    res.status(500).json({ error: "Failed to fetch venues" });
+  }
+});
+
 module.exports = pool; // if you need to use it in other files
 
 // Test connection
