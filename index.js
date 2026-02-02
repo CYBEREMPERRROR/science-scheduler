@@ -13,6 +13,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+app.post("/api/lecturer/verify", (req, res) => {
+  const { token } = req.body;
+
+  if (!token) return res.status(400).json({ valid: false, error: "Token required" });
+
+  if (token === LECTURER_TOKEN) return res.json({ valid: true });
+  else return res.json({ valid: false });
+});
+
 // 4️⃣ Database connection (Render PostgreSQL)
 const DATABASE_URL =
   "postgresql://science_scheduler_db_user:ImI7yPrvlpLrgZxXfN5k1CJ3D9QXyrdG@dpg-d5ukql4hg0os73b03ro0-a.virginia-postgres.render.com/science_scheduler_db";
